@@ -86,6 +86,14 @@ deshalb hier nur noch ein mal in Kurzform:
  make
  sudo make install
 
+Standardmäßig werden die Datenbankunterstürzung für MySQL, PostreSQL und SQLite
+übersetzt. Wenn das nicht gewollt ist, lässt sich das mit einem configure-Flag
+verhindern.
+
+ ./configure --with-sqlite=no --with-mysql=no"
+
+In diesem Beispiel wurde die Unterstürzung für MySQL und SQLIte ausgeschaltet.
+
 und
 
  git clone https://github.com/maekitalo/tntnet.git
