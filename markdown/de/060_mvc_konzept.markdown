@@ -86,6 +86,12 @@ hier angegeben werden. Es empfehlt sich der Übersicht halber die
 Namenskonvention zu verwenden die shared Variablen ein "sh_" als Präfix 
 voranstellen.
 
+Mit der Controller tatsächlich beim Routing berücksichtigt wird muss die Klasse
+noch der Component-Factory bekanntgemacht werden:
+
+    static tnt::ComponentFactoryImpl<MyCompController> 
+         factory("MyCompController");
+
 
 ### View ###
 
@@ -118,4 +124,5 @@ müssen sie noch mit einer gemeinsamen Route verknüpft werden.
 
 Diese Regel sagt aus, das jede URL ein mal um "Controller" und einmal um "View"
 ergänzt werden, und damit zuerst der Conntroller und dann der View aufgerufen 
-wird.
+wird. Lautet nun unser Controller z.B. MyCompController und der Viel MyCompView
+so wird die neue Kompnent über die URL "MyComp" aufgerufen. 
