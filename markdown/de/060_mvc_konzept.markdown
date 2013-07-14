@@ -58,7 +58,7 @@ Typen zurück den man angibt:
     std::vector<std::string>  args_userroles =
         qparam.args<std::string>("args_userroles");
 
-Um nicht durcheinander zu kommen mit Argumenten und globalen Variablen kann es
+Um nicht durcheinander zu kommen mit Argumenten und shared Variablen kann es
 hilfreich sein, sich auf die Konvention zu einigen, das Argumente mit den 
 Präfix "arg_" beginnen. Die Namen in den HTML-Formularen muss natürlich der
 gleichen Konvention folgen.
@@ -74,22 +74,22 @@ gleichen Konvention folgen.
             maxlength="80">
     </p>
 
-Um Werte an den View zu übergeben nutzt man globale Variablen. Diese müssen
-mit einem Macro registriert und initialisiert werden.
+Um Werte an den View zu übergeben nutzt man shared Opjekte und Variablen. 
+Diese müssen mit einem Macro registriert und initialisiert werden.
 
-     // Global variables
-    TNT_SESSION_GLOBAL_VAR( UserSession, g_userSession, ());
+     // shared variables
+    TNT_SESSION_GLOBAL_VAR( UserSession, sh_userSession, ());
 
 Der erste Parameter ist der Typ; der zweite Name und der Dritte ist
 der aufzurufende Constructor. Wenn dieser einen Parameter braucht, kann diese
 hier angegeben werden. Es empfehlt sich der Übersicht halber die 
-Namenskonvention zu verwenden die globalen Variablen ein "g_" als Präfix 
+Namenskonvention zu verwenden die shared Variablen ein "sh_" als Präfix 
 voranstellen.
 
 
 ### View ###
 
-Mit die globalen Variablen des Controllers dem View auch zur Verfügung
+Mit die shared Variablen des Controllers dem View auch zur Verfügung
 stehen, müssen dies der View-Umgebung bekannt gemacht werden. Das beschied
 auf die volgende Weise:
 
@@ -97,11 +97,11 @@ auf die volgende Weise:
         scope="global"
         include="models/UserSession.h">
             UserSession g_userSession;
-            std::vector<std::string> g_allRolls;
+            std::vector<std::string> sh_allRolls;
     </%session>
 
 
-Mit dem scope-Wert "global" wird angezeigt das es sich um globale Variablen
+Mit dem scope-Wert "global" wird angezeigt das es sich um shared Variablen
 handelt. Mit "include" können benötigte Header-Dateien eingebunden werden. In
 diesem Fall die Klasse "UserSession" die wir brauchen mit der Type UserSession
 bekannt ist. Zwischen den Tags werden dann die eigentlichen Variablen aufgelistet
