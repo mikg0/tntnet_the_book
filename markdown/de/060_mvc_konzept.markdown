@@ -93,6 +93,21 @@ noch der Component-Factory bekanntgemacht werden:
          factory("MyCompController");
 
 
+#### Empfohlene Argumenten Typen ####
+
+| HTML-Type       | C++-Type            | 
+| --------------- | ------------------- |
+| button          | bool                |
+| input/text      | string              |
+| input/password  | string              |
+| input/number    | int, long, short... |
+| input/checkbox  | bool                |
+| select/multiple | vector<string>      |
+
+
+select
+
+
 ### View ###
 
 Mit die shared Variablen des Controllers dem View auch zur Verfügung
