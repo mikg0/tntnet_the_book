@@ -8,16 +8,19 @@ Projekte das MVC-Konzept. Die Datei-Hierarchie könne wie folgt aussehen.
     /projektname/src
     /projektname/src/main/
     /projektname/src/main/views
+    /projektname/src/main/manager
     /projektname/src/main/models
     /projektname/src/main/controller
     /projektname/src/main/resources
     /projektname/src/component_1/
     /projektname/src/component_1/views
+    /projektname/src/component_1/manager
     /projektname/src/component_1/models
     /projektname/src/component_1/controller
     /projektname/src/component_1/resources
     /projektname/src/component_2/
     /projektname/src/component_2/views
+    /projektname/src/component_2/manager
     /projektname/src/component_2/models
     /projektname/src/component_2/controller
     /projektname/src/component_2/resources
@@ -43,7 +46,7 @@ Den Namensraum "ProjectName::Main" würden wir für das Kernmodul empfehlen.
 
 Mit qparam.arg<TYPE>(KEYWORD) wird ein Argument ausgelesen. TYPE ist der
 Variablen Type den man zurück bekommen möchte. KEYWORD ist der Bezeichner
-mit dem der Wert übergeben wird. 
+mit dem der Wert übergeben wird.
 
     // URL arguments
     std::string arg_login_name =
@@ -59,7 +62,7 @@ Typen zurück den man angibt:
         qparam.args<std::string>("args_userroles");
 
 Um nicht durcheinander zu kommen mit Argumenten und globalen Variablen kann es
-hilfreich sein, sich auf die Konvention zu einigen, das Argumente mit den 
+hilfreich sein, sich auf die Konvention zu einigen, das Argumente mit den
 Präfix "arg_" beginnen. Die Namen in den HTML-Formularen muss natürlich der
 gleichen Konvention folgen.
 
@@ -74,34 +77,34 @@ gleichen Konvention folgen.
             maxlength="80">
     </p>
 
-Um Werte an den View zu übergeben nutzt man globale Variablen. Diese müssen
+Um Werte an den View zu übergeben nutzt man shared Variablen. Diese müssen
 mit einem Macro registriert und initialisiert werden.
 
      // Global variables
-    TNT_SESSION_GLOBAL_VAR( UserSession, g_userSession, ());
+    TNT_SESSION_SHARED_VAR( UserSession, s_userSession, ());
 
 Der erste Parameter ist der Typ; der zweite Name und der Dritte ist
 der aufzurufende Constructor. Wenn dieser einen Parameter braucht, kann diese
-hier angegeben werden. Es empfehlt sich der Übersicht halber die 
-Namenskonvention zu verwenden die globalen Variablen ein "g_" als Präfix 
+hier angegeben werden. Es empfehlt sich der Übersicht halber die
+Namenskonvention zu verwenden die shared Variablen ein "s_" als Präfix
 voranstellen.
 
 
 ### View ###
 
-Mit die globalen Variablen des Controllers dem View auch zur Verfügung
+Mit die shared Variablen des Controllers dem View auch zur Verfügung
 stehen, müssen dies der View-Umgebung bekannt gemacht werden. Das beschied
 auf die volgende Weise:
 
     <%session
-        scope="global"
+        scope="shared"
         include="models/UserSession.h">
-            UserSession g_userSession;
-            std::vector<std::string> g_allRolls;
+            UserSession s_userSession;
+            std::vector<std::string> s_allRolls;
     </%session>
 
 
-Mit dem scope-Wert "global" wird angezeigt das es sich um globale Variablen
+Mit dem scope-Wert "shared" wird angezeigt das es sich um shared Variablen
 handelt. Mit "include" können benötigte Header-Dateien eingebunden werden. In
 diesem Fall die Klasse "UserSession" die wir brauchen mit der Type UserSession
 bekannt ist. Zwischen den Tags werden dann die eigentlichen Variablen aufgelistet
@@ -117,5 +120,5 @@ müssen sie noch mit einer gemeinsamen Route verknüpft werden.
         app.mapUrl( "^/(.*)$", "$1View" );
 
 Diese Regel sagt aus, das jede URL ein mal um "Controller" und einmal um "View"
-ergänzt werden, und damit zuerst der Conntroller und dann der View aufgerufen 
+ergänzt werden, und damit zuerst der Conntroller und dann der View aufgerufen
 wird.
