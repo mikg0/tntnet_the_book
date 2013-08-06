@@ -78,13 +78,22 @@ Um Werte an den View zu übergeben nutzt man shared Opjekte und Variablen.
 Diese müssen mit einem Macro registriert und initialisiert werden.
 
      // shared variables
-    TNT_SESSION_GLOBAL_VAR( UserSession, sh_userSession, ());
+    TNT_REQUEST_SHARED_VAR( UserSession, sh_userSession, ());
 
 Der erste Parameter ist der Typ; der zweite Name und der Dritte ist
 der aufzurufende Constructor. Wenn dieser einen Parameter braucht, kann diese
 hier angegeben werden. Es empfehlt sich der Übersicht halber die 
 Namenskonvention zu verwenden die shared Variablen ein "sh_" als Präfix 
 voranstellen.
+
+Es gibt für die shared Opjekte verschiedliche gültigkeits bereiche bzw.
+Lebensdauer. So werden über TNT_SESSION_GLOBAL_VAR die Objekte die
+gesamte Session überdauern. Es gibt noch TNT_REQUEST_SHARED_VAR. Hier haben die
+Objekte nur eine Lebensdauer für ein Request. Es ist ratsam mit
+TNT_SESSION_GLOBAL_VAR sehr sparsam umzugehen und wenn immer möglich, nur mit
+TNT_REQUEST_SHARED_VAR zu arbeiten. Andernfalls kann es zu ungewollten Effekten
+kommen, wenn Objekte noch einen unerwarteten Wehrt haben, von einer vorigen
+Request-Prozedur. 
 
 Mit der Controller tatsächlich beim Routing berücksichtigt wird muss die Klasse
 noch der Component-Factory bekanntgemacht werden:
@@ -115,18 +124,27 @@ stehen, müssen dies der View-Umgebung bekannt gemacht werden. Das beschied
 auf die volgende Weise:
 
     <%session
-        scope="global"
+        scope="shared"
         include="models/UserSession.h">
             UserSession g_userSession;
             std::vector<std::string> sh_allRolls;
     </%session>
 
+    <%request
+        scope="shared">
+                std::vector<std::string> sh_allRolls;
+    </%request>
 
-Mit dem scope-Wert "global" wird angezeigt das es sich um shared Variablen
+
+Mit dem scope-Wert "shared" wird angezeigt das es sich um shared Variablen
 handelt. Mit "include" können benötigte Header-Dateien eingebunden werden. In
 diesem Fall die Klasse "UserSession" die wir brauchen mit der Type UserSession
 bekannt ist. Zwischen den Tags werden dann die eigentlichen Variablen aufgelistet
-bzw. bekannt gemacht.
+bzw. bekannt gemacht. In dem Beispiel sieht man auch das hier bei der Lebensdauer
+der shared Variablen unterschieden wird. In dem Tag "session" kommen alle
+Werte die zu vor mit TNT_SESSION_GLOBAL_VAR deklariert wurden. In "request"
+kommen alle Variablen die in dem Controller mit TNT_REQUEST_SHARED_VAR
+initialisiert wurden. 
 
 
 ### Routing ###
