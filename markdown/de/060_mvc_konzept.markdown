@@ -40,6 +40,22 @@ Den Namensraum "ProjectName::Main" würden wir für das Kernmodul empfehlen.
 
 ### Contoller ###
 
+Die Controller-Klasse wird von tnt::Component abgeleitet, und muss eine 
+Funktion "operator()" implementieren:
+
+
+    class MyCopmonentController : public tnt::Component
+    {
+        public:
+            unsigned operator() (
+                tnt::HttpRequest& request,
+                tnt::HttpReply& reply,
+                tnt::QueryParams& qparam
+            );
+    };
+
+Da die Klasse kein Interface hat über die sie angesprochen wird, entfällt die
+Header-Datei und es ist nur eine *.cpp nötig.
 
 Mit qparam.arg<TYPE>(KEYWORD) wird ein Argument ausgelesen. TYPE ist der
 Variablen Type den man zurück bekommen möchte. KEYWORD ist der Bezeichner
@@ -78,12 +94,12 @@ Um Werte an den View zu übergeben nutzt man shared Opjekte und Variablen.
 Diese müssen mit einem Macro registriert und initialisiert werden.
 
      // shared variables
-    TNT_REQUEST_SHARED_VAR( UserSession, sh_userSession, ());
+    TNT_REQUEST_SHARED_VAR( UserSession, s_userSession, ());
 
 Der erste Parameter ist der Typ; der zweite Name und der Dritte ist
 der aufzurufende Constructor. Wenn dieser einen Parameter braucht, kann diese
 hier angegeben werden. Es empfehlt sich der Übersicht halber die 
-Namenskonvention zu verwenden die shared Variablen ein "sh_" als Präfix 
+Namenskonvention zu verwenden die shared Variablen ein "s_" als Präfix 
 voranstellen.
 
 Es gibt für die shared Opjekte verschiedliche gültigkeits bereiche bzw.
