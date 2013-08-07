@@ -21,7 +21,7 @@ eigentlich über verschiedene Klassen gesteuert wird.
 Dem Constructor der Configurator-Klasse wird die Instanz der Tntnet-Klasse
 übergeben...
 
- #include <tnt/tntconfig.h>
+ #include <tnt/configurator.h>
 
  tnt::Tntnet myApplication;
  tnt::Configurator config(myApplication);
