@@ -21,9 +21,11 @@ eigentlich über verschiedene Klassen gesteuert wird.
 Dem Constructor der Configurator-Klasse wird die Instanz der Tntnet-Klasse
 übergeben...
 
-  tnt::Tntnet myApplication;
-  tnt::Configurator config(myApplication);
-  config.setMaxRequestTime(seconds);
+ #include <tnt/tntconfig.h>
+
+ tnt::Tntnet myApplication;
+ tnt::Configurator config(myApplication);
+ config.setMaxRequestTime(seconds);
 
 ...Um dann weiter mit der Instanz der Configurator-Klasse das Verhalten zu
 steuern. Im Folgendem die Möglichen Einstellungen:
