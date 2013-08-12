@@ -31,6 +31,7 @@ tatsächlich gleichzeitig beschied, wird das Programm abstürzen.
 Hier ein ein kurzes Beispiel einer Fabrik-Methode. Die Methode getInstance()
 erstellt eine Instanz einer Klasse "Impl" und gibt sie als Referenz zurück.
 
+
  BibleManager::Impl& BibleManager::Impl::getInstance()
  {
      static Impl impl;
@@ -44,6 +45,7 @@ erstellt eine Instanz einer Klasse "Impl" und gibt sie als Referenz zurück.
      }
      return impl;
  }
+
 
 Dabei macht die Funktion zwei interessante Dinge. Zum einen schützt sie mit
 dem Aufruf "cxxtools::MutexLock lock(mutex);" die darauf folgenden Aufrufe bis
