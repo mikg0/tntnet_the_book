@@ -32,6 +32,10 @@ Hier ein ein kurzes Beispiel einer Fabrik-Methode. Die Methode getInstance()
 erstellt eine Instanz einer Klasse "Impl" und gibt sie als Referenz zurück.
 
 
+    #include <cxxtools/mutex.h>
+
+    # [...]
+
     BibleManager::Impl& BibleManager::Impl::getInstance()
     {
         static Impl impl;

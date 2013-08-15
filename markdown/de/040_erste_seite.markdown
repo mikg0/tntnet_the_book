@@ -8,13 +8,13 @@ und dessen Umsetzung wird in einem späteren Kapitel erläutert. An dieser Stell
 schaffen wir aber schon eine erste Grundlage. Wir empfehlen die folgende Ordner
 Struktur für künftige Projekte/Beispiele zu verwenden:
 
- /projektname
- /projektname/src
- /projektname/src/main/
- /projektname/src/main/views
- /projektname/src/main/models
- /projektname/src/main/controller
- /projektname/src/main/resources
+    /projektname
+    /projektname/src
+    /projektname/src/main/
+    /projektname/src/main/views
+    /projektname/src/main/models
+    /projektname/src/main/controller
+    /projektname/src/main/resources
 
 * Als standalone
 * Als Applikation-Server
