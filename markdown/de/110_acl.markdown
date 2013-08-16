@@ -8,6 +8,8 @@ Tntnet bietet keine fertige ACL-Lösung an. Hier sollen zwei Lösungsansätze
 aufgezeigt werden, die an die jeweiligen eigenen Anforderungen angepasst
 werden müssen.
 
+## Session-Handling ##
+
 In jedem Fall wird ein Session-Handling benötigt und eine Sitzung mit einem
 System-User zu verknüpfen. Diese geschieht in einer Controller-Klasse über
 Variablen oder Klassen-Instanzen die als "shared" deklariert werden. Hier ein
@@ -51,6 +53,8 @@ erhalten bleibt. Mit scope="shared" wird dafür gesorgt das auch andere
 Komponenten Zugriff haben, so zum Beispiel eine Controller-Klasse. Über
 include="models/UserSession.h" werden die benötigten Header-Dateien eingebunden.
 
+## Passwortauthentifizierung ##
+
 Über ein Login-Form kann dann eine Identifikation realisiert werden. Die
 Zugangsdaten werden klassischerweise in einer Datenbank gespeichert sein. Es
 muss also noch eine Funktion implementiert werden, die die Eingaben aus dem
@@ -63,8 +67,184 @@ verglichen wird.
 
 Es gibt Listen mit Checksummen die Passwort-Crack-Programme durchsuchen um das
 unverschlüsselte Passwort zu rekonstruieren. Mit diese Art des Angrifft
-möglichst erschwert wird, ist es dringen angeraten mit salt zu arbeiten.
+möglichst erschwert wird, ist es dringen angeraten mit so genannten "salt" zu 
+arbeiten. Gemeint ist, zu dem Passwort noch eine zufällige Kombination aus
+Zeichen hinzuzunehmen. Die zusätzliche Kombination aus Zeichen muss zusätzlich
+in der Datenbank gespeichert werden. Hier ein Beispiel zur Verdeutlichung:
+
+Das Passwort "auto" ist ziemlich schwach und die Checksumme die es hat
+ist 9df22f196a33acd0b372fe502de51211 wenn ich in Google danach suche habe
+ich die Lösung in weniger als 10 Sekunden! Kombiniere ich das Passwort
+mit salt:
+
+    [Passwort] + [salt] = [Checksume]
+    "auto" + "hgfkuzuz" = 924942929184fa60f1fa3fcb4e07e0ee
+
+Bekomme ich bei Google & Co keine erfolgreichen Suchtreffer mehr, die
+mir mein Passwort in Klartext verraten. Das das salt in Klartext in
+der Datenbank zu sehen ist, ändert nichts. Ich kann bei Google & Co
+auch nach "hgfkuzuz" und "924942929184fa60f1fa3fcb4e07e0ee" suchen und
+bekomme kein brauchbares Ergebnis.
+
+Und hier ein Code-Ausschnitt der eine mögliche Implementierung einer 
+Funktion zeigt, die Prüfen soll, ob das eingegebene Passwort das richtige
+ist.
+
+    bool WebACL::authUser ( const std::string& user_name, const std::string& password )
+    {
+        // Der Hash der aus dem Eingegebenen Passwort und dem Salt gebildet wird.
+        std::string password_hash_a;
+        // Der Hash der in der Datenbank steht und zuvor aus dem Passwort und dem Salt gebildet wurde.
+        std::string password_hash_b;
+        // Der Salt der in der Datenbank hinterlegt ist.
+        std::string password_salt;
+
+        tntdb::Connection conn = tntdb::connectCached(Config::it().dbDriver());
+        // Datenbankabfrage nach dem Salt und der Checksume.
+        try {
+            tntdb::Statement sel = conn.prepare(
+                "SELECT password_salt, password_hash \
+                 FROM account \
+                 WHERE login_name = :login_name \
+                 AND NOT account_disable"
+            );
+
+            tntdb::Row row = sel.set("login_name", user_name).selectRow();
+
+            row[0].get(password_salt);
+            row[1].get(password_hash_b);
+        } catch ( const tntdb::NotFound& ) {
+            // Es wurde kein Datensatz in der Datenbank gefunden. Möglicherweise 
+            // gibt den User auch nicht in der Datenbank aber auch dann lassen
+            // wir kein Login zu!
+            return false;
+        }
+        // Hier nutzen wir eine cxxtools-Funktion um die md5-Summe zu bilden.
+        password_hash_a = cxxtools::md5( password + password_salt );
+
+        // Jetzt wird geprüft ob die beiden Checksumen wirklich identisch sind.
+        if ( password_hash_b == password_hash_a ) {
+            // Das Passwort war richtig!
+            return true;
+        } else        {
+            // Das Passwort ist falsch!
+            return false;
+        }
+    }
 
 
 
-string fname = request.getQuery();
+## Regeln für die Zugriffskontrolle ##
+
+Mit der oben implementierten Funktion prüfen wir die Identität Desjenigen der 
+sich anmelden will. Meistens wollen wir aber genauer bestimmen was Derjenige
+darf und was nicht. Also brauchen wir noch ein Regelwerk was das beschreibt.
+
+In den meisten fällen werden zwei Tabellen verwendet. In der einen Tabelle wird
+festgelegt In welcher Rolle (oder Gruppe) man auf welche Ressource (oder 
+Seiten bzw. Komponenten) zugreifen dürfen soll:
+
+
+| Rolle \ Ressource | Ressource A  | Ressource B   | Ressource C   |
+| ----------------- | ------------ | ------------- | ------------- |
+| Rolle A           | Erlaubt      | Erlaubt       | Erlaubt       |
+| Rolle B           | Erlaubt      | Erlaubt       | Verweigert    |
+| Rolle C           | Erlaubt      | Verweigert    | Verweigert    |
+
+In der Zweiten Tabelle wird festgelegt, welche Rollen/Gruppen ein User haben
+soll:
+
+| Rolle \ User | User A  | User B   | User C   |
+| ------------ | ------- | -------- | -------- |
+| Rolle A      | Ja      | Ja       | Ja       |
+| Rolle B      | Ja      | Ja       | Nein     |
+| Rolle C      | Ja      | Nein     | Nein     |
+
+Wo diese Tabellen gespeichert werden ist naheliegend: in einer Datenbank. 
+Spannender ist die Frage wo in den Request-Prozess man bei Tntnet diese Tabellen
+abfragen sollte um einen unerlaubten Zugriff zu verhindern. An dieser Stelle
+sollen zwei unterschiedliche Ansatzpunkte aufgezeigt werden.
+
+Der erste Ansatz Punkt lehnt sich eng an dem MVC-Konzept (model view controller) 
+an. Wie in dem Abschnitte MVC beschrieben, gibt es ein bestimmtes Routing das
+verwendet wird:
+
+        app.mapUrl( "^/(.*)$", "$1Controller" );
+        app.mapUrl( "^/(.*)$", "$1View" );
+
+Es sorgt dafür das bei jedem Aufruf nach einem passenden Controller und einem
+passenden View gesucht wird. Und zwar in dieser Reihenfolge: Erst der Controller
+dann der View. Also ließe sich ein Kontrollmechanismus im Controller einbauen
+der einen illegitimem Zugriff verweigert. Hier ein Code-Schnapselchen wie das
+aussehen könnte.
+
+    unsigned EditAccountController::operator() (tnt::HttpRequest& request, tnt::HttpReply& reply, tnt::QueryParams& qparam)
+    {
+        // shared variables
+        TNT_SESSION_SHARED_VAR( UserSession, userSession, () );
+
+        // ACL Check
+        if ( userSession.isInRole ( "admin" ) == false ) {
+            return reply.redirect ( "/access_denied" );
+        };
+
+Zunächst wird mit TNT_SESSION_SHARED_VAR die Instanz der Klasse UserSession
+zugänglich gemacht. Wenn der User sich angemeldet hat, werden dort seine 
+Identitätsmerkmale gespeichert (z.B. Loginname, ID, Rolen, usw.). In der 
+if-Abfrage fragen wir die Klasse UserSession ob sich der User in der Rolle
+"admin" befindet. Die Daten lassen sich übrigens nicht vom User manipulieren.
+Die Daten der Instanz liegen nicht im Browser-Cookie. Dort liegt nur eine
+eindeutige ID mit dem die Daten auf der Server-Seite assoziiert werden.
+
+Stellt sich heraus das der User nicht die nötige Rolle hat, wird der Besucher
+umgeleitet auf eine andere Seite. Intern (füt Tntnet) löst der Befehl 
+"return reply.redirect()" eine Exception aus. Das heiß, das danach nichts 
+mehr ausgeführt wird und das ist genau das was wir wollen. Damit unterbinden
+wir das noch die View-Komponente oder irgend eine andere Komponente aufgerufenen 
+werden könne.
+
+Der geschilderte Ansatz hat Vor- und Nach-Teile (wie so oft im leben). Der 
+Vorteil ist, das man im Komponente-Code sehen kann, für wen die Funktion
+ereichbar sein soll. Der Nachteil ist aber, das man keinen zentralen Ort
+im Code hat, wo man alle Zugriffsregeln mit einem Blick sieht und steuern
+kann. Was einem besser gefällt, ist letztlich eine philosophische Frage.
+Es soll aber noch ein andere Ansatzpunk aufgezeigt werden, für Diejenigen
+die lieber einen zentralen Ort für die ACLs haben.
+
+Das zu wird das Routing-Schema leicht verändert:
+
+        app.mapUrl( "^/(.*)$", "ALCController" );
+        app.mapUrl( "^/(.*)$", "$1Controller" );
+        app.mapUrl( "^/(.*)$", "$1View" );
+
+Hier wird jetzt bei jeden Aufruf vorweg die Komponente "ALCController"
+aufgerufen. Diese Prüft für alle Anfragen, dessen Zulässigkeit. Ist diese
+nicht gegeben wird wieder per return reply.redirect() de Verarbeitungskette
+unterbrochen und die Anfrage auf eine definierte Komponente (Seite)
+umgelenkt.
+
+Mit der Controller "ALCController" das kann, braucht er natürlich mehr
+Informationen als bei unserm bisherigen Ansatz. Der Code könnte in etwa
+so aussehen:
+
+    unsigned EditAccountController::operator() (tnt::HttpRequest& request, tnt::HttpReply& reply, tnt::QueryParams& qparam)
+    {
+        // shared variables
+        TNT_SESSION_SHARED_VAR( UserSession, userSession, () );
+
+        std::string componentName = request.getQuery();
+        std::vector<std::string> userRoles = userSession.getRoles();
+
+        // ACL Check
+        if ( !ACLManager::isLegitimate(componentName, userRoles) {
+            return reply.redirect ( "/access_denied" );
+        };
+
+Hier wird mit request.getQuery() abgefragt welche Komponente (Seite) angesteuert
+werden soll. Die Funktion ACLManager::isLegitimate() Bekommt als Parameter
+Den Komponenten Namen und die Rollen, die der User hat. An Hand dessen entscheidet
+dann die Klasse ACLManager ob der Zugriff legitim ist oder nicht. Ob Die
+Klasse ACLManager einen Exakte URL abfragt oder unscharf über Regex (regular 
+expression) hängt dann von der Implementierung der Klasse ACLManager ab.
+Aber über diesen Weg kann man dann eine zentrale Liste verwalten, über
+die man die Zugriffe auf bestimmte Ressourcen steuert. 
