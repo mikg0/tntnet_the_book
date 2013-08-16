@@ -1,2 +1,70 @@
 # ACLs implementieren #
 
+ACL steht für "Access Control List". Also die Zugriffskontrolle. Meist haben
+interaktive Website Bereiche oder Funktionen die nicht allen zugänglich gemacht
+werden soll. Über ACLs wird also kontrolliert, wer was tun dürfen soll.
+
+Tntnet bietet keine fertige ACL-Lösung an. Hier sollen zwei Lösungsansätze
+aufgezeigt werden, die an die jeweiligen eigenen Anforderungen angepasst
+werden müssen.
+
+In jedem Fall wird ein Session-Handling benötigt und eine Sitzung mit einem
+System-User zu verknüpfen. Diese geschieht in einer Controller-Klasse über
+Variablen oder Klassen-Instanzen die als "shared" deklariert werden. Hier ein
+Code-Ausschnitt einer Controller-Klasse:
+
+
+    class LogInController : public tnt::Component
+    {
+    public:
+        unsigned operator() (
+            tnt::HttpRequest& request,
+            tnt::HttpReply& reply,
+            tnt::QueryParams& qparam
+        );
+    };
+
+    static tnt::ComponentFactoryImpl<LogInController> factory("LogInController");
+
+    unsigned LogInController::operator() (
+        tnt::HttpRequest& request,
+        tnt::HttpReply& reply,
+        tnt::QueryParams& qparam
+    ){
+        // Shared variables
+        TNT_SESSION_SHARED_VAR( UserSession, userSession, () );
+
+
+Hier in dem Fall wurde eine Instanz Klasse "UserSession" verwendet. In dieser
+werden alle Informationen gespeichert die für das Session-Handling bzw. die
+ACL gebracht wird. Wenn diese Instanz ein mal in einem eccp-View gebracht wird,
+macht man sie so bekannt:
+
+    <%session
+        scope="shared"
+        include="models/UserSession.h" >
+            UserSession        userSession;
+    </%session>
+
+"<%session" Zeigt an, das die Instanz für die gesamte Lebenszeit der Session
+erhalten bleibt. Mit scope="shared" wird dafür gesorgt das auch andere
+Komponenten Zugriff haben, so zum Beispiel eine Controller-Klasse. Über
+include="models/UserSession.h" werden die benötigten Header-Dateien eingebunden.
+
+Über ein Login-Form kann dann eine Identifikation realisiert werden. Die
+Zugangsdaten werden klassischerweise in einer Datenbank gespeichert sein. Es
+muss also noch eine Funktion implementiert werden, die die Eingaben aus dem
+Webformular entgegen nimmt und mit Werten in der Datenbank abgleicht. Dabei
+sollte man auf keinen Fall die Passwörter in Klartext speichern. Stattdessen
+wird von dem Passwort eine Checksumme gebildet und in der Datenbank gespeichert.
+Bei der Übermittlung des Passwort während des Loginprozesse, wird von dem
+Passwort ebenfalls eine Checksumme gebildet die mit der in der Datenbank
+verglichen wird.
+
+Es gibt Listen mit Checksummen die Passwort-Crack-Programme durchsuchen um das
+unverschlüsselte Passwort zu rekonstruieren. Mit diese Art des Angrifft
+möglichst erschwert wird, ist es dringen angeraten mit salt zu arbeiten.
+
+
+
+string fname = request.getQuery();
