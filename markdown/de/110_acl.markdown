@@ -10,10 +10,10 @@ werden müssen.
 
 ## Session-Handling ##
 
-In jedem Fall wird ein Session-Handling benötigt und eine Sitzung mit einem
-System-User zu verknüpfen. Diese geschieht in einer Controller-Klasse über
-Variablen oder Klassen-Instanzen die als "shared" deklariert werden. Hier ein
-Code-Ausschnitt einer Controller-Klasse:
+In jedem Fall wird ein Session-Handling benötigt um eine Sitzung mit einem
+System-User zu verknüpfen. Dies geschieht in einer Controller-Klasse über
+Variablen oder Klassen-Instanzen die in der ecpp-Datei mit "scope=shared" 
+deklariert werden. Hier ein Code-Ausschnitt einer Controller-Klasse:
 
 
     class LogInController : public tnt::Component
@@ -37,9 +37,9 @@ Code-Ausschnitt einer Controller-Klasse:
         TNT_SESSION_SHARED_VAR( UserSession, userSession, () );
 
 
-Hier in dem Fall wurde eine Instanz Klasse "UserSession" verwendet. In dieser
-werden alle Informationen gespeichert die für das Session-Handling bzw. die
-ACL gebracht wird. Wenn diese Instanz ein mal in einem eccp-View gebracht wird,
+In diesem Fall wurde eine Instanz der Klasse "UserSession" verwendet. In dieser
+Instanz werden alle Informationen gespeichert die für das Session-Handling bzw. die
+ACL gebraucht werden. Wenn diese Instanz in einem eccp-View benötigt wird,
 macht man sie so bekannt:
 
     <%session
@@ -60,34 +60,37 @@ Zugangsdaten werden klassischerweise in einer Datenbank gespeichert sein. Es
 muss also noch eine Funktion implementiert werden, die die Eingaben aus dem
 Webformular entgegen nimmt und mit Werten in der Datenbank abgleicht. Dabei
 sollte man auf keinen Fall die Passwörter in Klartext speichern. Stattdessen
-wird von dem Passwort eine Checksumme gebildet und in der Datenbank gespeichert.
-Bei der Übermittlung des Passwort während des Loginprozesse, wird von dem
-Passwort ebenfalls eine Checksumme gebildet die mit der in der Datenbank
+wird von dem Passwort eine Prüfsumme gebildet und in der Datenbank gespeichert.
+Bei der Übermittlung des Passworts während des Loginprozesses, wird von dem
+Passwort ebenfalls eine Prüfsumme gebildet die mit der in der Datenbank
 verglichen wird.
 
-Es gibt Listen mit Checksummen die Passwort-Crack-Programme durchsuchen um das
-unverschlüsselte Passwort zu rekonstruieren. Mit diese Art des Angrifft
-möglichst erschwert wird, ist es dringen angeraten mit so genannten "salt" zu 
+Passwort-Crack-Programme verwenden Listen mit bekannten Klartext/Prüfsummen-Paaren
+um unverschlüsselte Passwörter zu rekonstruieren. Um diese Art des Angriffs
+zu erschweren, ist es dringend angeraten mit einem so genannten "salt" zu 
 arbeiten. Gemeint ist, zu dem Passwort noch eine zufällige Kombination aus
-Zeichen hinzuzunehmen. Die zusätzliche Kombination aus Zeichen muss zusätzlich
-in der Datenbank gespeichert werden. Hier ein Beispiel zur Verdeutlichung:
+Zeichen hinzuzunehmen und die Prüfsumme über die neu entstandene Gesamtzeichenkette
+zu bilden. In der Datenbank wird dann nur die Prüfsumme und der Salt gespeichert. Die
+wertvollen Klartext-Passwörter bleiben so verborgen, auch wenn ein Angreifer die 
+Datenbank ausliest.
+Hier ein Beispiel zur Verdeutlichung:
 
-Das Passwort "auto" ist ziemlich schwach und die Checksumme die es hat
+Das Passwort "auto" ist ziemlich schwach und die Prüfsumme die es hat
 ist 9df22f196a33acd0b372fe502de51211 wenn ich in Google danach suche habe
 ich die Lösung in weniger als 10 Sekunden! Kombiniere ich das Passwort
-mit salt:
+mit einem Salt:
 
-    [Passwort] + [salt] = [Checksume]
+    [Passwort] + [salt] = [Prüfsumme]
     "auto" + "hgfkuzuz" = 924942929184fa60f1fa3fcb4e07e0ee
 
-Bekomme ich bei Google & Co keine erfolgreichen Suchtreffer mehr, die
-mir mein Passwort in Klartext verraten. Das das salt in Klartext in
+bekomme ich bei Google & Co keine erfolgreichen Suchtreffer mehr, die
+mir mein Passwort in Klartext verraten. Das der Salt in Klartext in
 der Datenbank zu sehen ist, ändert nichts. Ich kann bei Google & Co
 auch nach "hgfkuzuz" und "924942929184fa60f1fa3fcb4e07e0ee" suchen und
 bekomme kein brauchbares Ergebnis.
 
 Und hier ein Code-Ausschnitt der eine mögliche Implementierung einer 
-Funktion zeigt, die Prüfen soll, ob das eingegebene Passwort das richtige
+Funktion zeigt, die prüfen soll, ob das eingegebene Passwort das Richtige
 ist.
 
     bool WebACL::authUser ( const std::string& user_name, const std::string& password )
@@ -115,14 +118,14 @@ ist.
             row[1].get(password_hash_b);
         } catch ( const tntdb::NotFound& ) {
             // Es wurde kein Datensatz in der Datenbank gefunden. Möglicherweise 
-            // gibt den User auch nicht in der Datenbank aber auch dann lassen
+            // gibt es den User auch nicht in der Datenbank aber auch dann lassen
             // wir kein Login zu!
             return false;
         }
         // Hier nutzen wir eine cxxtools-Funktion um die md5-Summe zu bilden.
         password_hash_a = cxxtools::md5( password + password_salt );
 
-        // Jetzt wird geprüft ob die beiden Checksumen wirklich identisch sind.
+        // Jetzt wird geprüft ob die beiden Prüfsummen wirklich identisch sind.
         if ( password_hash_b == password_hash_a ) {
             // Das Passwort war richtig!
             return true;
@@ -138,9 +141,9 @@ ist.
 
 Mit der oben implementierten Funktion prüfen wir die Identität Desjenigen der 
 sich anmelden will. Meistens wollen wir aber genauer bestimmen was Derjenige
-darf und was nicht. Also brauchen wir noch ein Regelwerk was das beschreibt.
+darf und was nicht. Also brauchen wir noch ein Regelwerk welches das beschreibt.
 
-In den meisten fällen werden zwei Tabellen verwendet. In der einen Tabelle wird
+In den meisten Fällen werden zwei Tabellen verwendet. In der einen Tabelle wird
 festgelegt In welcher Rolle (oder Gruppe) man auf welche Ressource (oder 
 Seiten bzw. Komponenten) zugreifen dürfen soll:
 
@@ -163,10 +166,10 @@ soll:
 Wo diese Tabellen gespeichert werden ist naheliegend: in einer Datenbank. 
 Spannender ist die Frage wo in den Request-Prozess man bei Tntnet diese Tabellen
 abfragen sollte um einen unerlaubten Zugriff zu verhindern. An dieser Stelle
-sollen zwei unterschiedliche Ansatzpunkte aufgezeigt werden.
+sollen zwei unterschiedliche Ansätze aufgezeigt werden.
 
-Der erste Ansatz Punkt lehnt sich eng an dem MVC-Konzept (model view controller) 
-an. Wie in dem Abschnitte MVC beschrieben, gibt es ein bestimmtes Routing das
+Der erste Ansatz lehnt sich eng an dem MVC-Konzept (model view controller) 
+an. Wie in dem Abschnitt MVC beschrieben, gibt es ein bestimmtes Routing das
 verwendet wird:
 
         app.mapUrl( "^/(.*)$", "$1Controller" );
@@ -175,8 +178,8 @@ verwendet wird:
 Es sorgt dafür das bei jedem Aufruf nach einem passenden Controller und einem
 passenden View gesucht wird. Und zwar in dieser Reihenfolge: Erst der Controller
 dann der View. Also ließe sich ein Kontrollmechanismus im Controller einbauen
-der einen illegitimem Zugriff verweigert. Hier ein Code-Schnapselchen wie das
-aussehen könnte.
+der einen illegitimem Zugriff verweigert. Hier ein Code-Schnipselchen das zeigt
+wie das aussehen könnte.
 
     unsigned EditAccountController::operator() (tnt::HttpRequest& request, tnt::HttpReply& reply, tnt::QueryParams& qparam)
     {
@@ -190,7 +193,7 @@ aussehen könnte.
 
 Zunächst wird mit TNT_SESSION_SHARED_VAR die Instanz der Klasse UserSession
 zugänglich gemacht. Wenn der User sich angemeldet hat, werden dort seine 
-Identitätsmerkmale gespeichert (z.B. Loginname, ID, Rolen, usw.). In der 
+Identitätsmerkmale gespeichert (z.B. Loginname, ID, Rollen, usw.). In der 
 if-Abfrage fragen wir die Klasse UserSession ob sich der User in der Rolle
 "admin" befindet. Die Daten lassen sich übrigens nicht vom User manipulieren.
 Die Daten der Instanz liegen nicht im Browser-Cookie. Dort liegt nur eine
@@ -200,31 +203,31 @@ Stellt sich heraus das der User nicht die nötige Rolle hat, wird der Besucher
 umgeleitet auf eine andere Seite. Intern (füt Tntnet) löst der Befehl 
 "return reply.redirect()" eine Exception aus. Das heiß, das danach nichts 
 mehr ausgeführt wird und das ist genau das was wir wollen. Damit unterbinden
-wir das noch die View-Komponente oder irgend eine andere Komponente aufgerufenen 
-werden könne.
+wir das noch die View-Komponente oder irgend eine andere Komponente aufgerufen 
+werden können.
 
-Der geschilderte Ansatz hat Vor- und Nach-Teile (wie so oft im leben). Der 
-Vorteil ist, das man im Komponente-Code sehen kann, für wen die Funktion
+Der geschilderte Ansatz hat Vor- und Nach-Teile (wie so oft im Leben). Der 
+Vorteil ist, das man im Komponenten-Code sehen kann, für wen die Funktion
 ereichbar sein soll. Der Nachteil ist aber, das man keinen zentralen Ort
-im Code hat, wo man alle Zugriffsregeln mit einem Blick sieht und steuern
+im Code hat, wo man alle Zugriffsregeln auf einen Blick sieht und steuern
 kann. Was einem besser gefällt, ist letztlich eine philosophische Frage.
-Es soll aber noch ein andere Ansatzpunk aufgezeigt werden, für Diejenigen
+Es soll aber noch ein anderer Ansatz aufgezeigt werden, für Diejenigen
 die lieber einen zentralen Ort für die ACLs haben.
 
-Das zu wird das Routing-Schema leicht verändert:
+Dazu wird das Routing-Schema leicht verändert:
 
-        app.mapUrl( "^/(.*)$", "ALCController" );
+        app.mapUrl( "^/(.*)$", "ACLController" );
         app.mapUrl( "^/(.*)$", "$1Controller" );
         app.mapUrl( "^/(.*)$", "$1View" );
 
-Hier wird jetzt bei jeden Aufruf vorweg die Komponente "ALCController"
-aufgerufen. Diese Prüft für alle Anfragen, dessen Zulässigkeit. Ist diese
-nicht gegeben wird wieder per return reply.redirect() de Verarbeitungskette
+Hier wird jetzt bei jedem Aufruf vorweg die Komponente "ACLController"
+aufgerufen. Diese prüft für alle Anfragen, deren Zulässigkeit. Ist diese
+nicht gegeben, wird wieder per return reply.redirect() die Verarbeitungskette
 unterbrochen und die Anfrage auf eine definierte Komponente (Seite)
 umgelenkt.
 
-Mit der Controller "ALCController" das kann, braucht er natürlich mehr
-Informationen als bei unserm bisherigen Ansatz. Der Code könnte in etwa
+Damit der Controller "ACLController" das kann, braucht er natürlich mehr
+Informationen als bei unserem bisherigen Ansatz. Der Code könnte in etwa
 so aussehen:
 
     unsigned EditAccountController::operator() (tnt::HttpRequest& request, tnt::HttpReply& reply, tnt::QueryParams& qparam)
@@ -240,11 +243,10 @@ so aussehen:
             return reply.redirect ( "/access_denied" );
         };
 
-Hier wird mit request.getQuery() abgefragt welche Komponente (Seite) angesteuert
-werden soll. Die Funktion ACLManager::isLegitimate() Bekommt als Parameter
-Den Komponenten Namen und die Rollen, die der User hat. An Hand dessen entscheidet
-dann die Klasse ACLManager ob der Zugriff legitim ist oder nicht. Ob Die
-Klasse ACLManager einen Exakte URL abfragt oder unscharf über Regex (regular 
-expression) hängt dann von der Implementierung der Klasse ACLManager ab.
-Aber über diesen Weg kann man dann eine zentrale Liste verwalten, über
+Hier wird mit request.getQuery() abgefragt, welche Komponente (Seite) angesteuert
+werden soll. Die Funktion ACLManager::isLegitimate() bekommt als Parameter
+den Komponenten-Namen und die Rollen, die der User hat. An Hand dessen entscheidet
+dann die Klasse ACLManager ob der Zugriff legitim ist oder nicht.
+Über diesen Weg kann man dann eine zentrale Liste verwalten, über
 die man die Zugriffe auf bestimmte Ressourcen steuert. 
+
